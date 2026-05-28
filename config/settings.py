@@ -123,7 +123,7 @@ REST_FRAMEWORK = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # آدرس سرور ردیس که در اون CMD بازه
+        "LOCATION": "redis://127.0.0.1:6379",  # آدرس سرور ردیس که در اون CMD بازه
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
