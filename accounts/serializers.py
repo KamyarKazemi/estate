@@ -1,5 +1,10 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 import re
+
+User = get_user_model()
+
+
 
 class SendOtpSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=11 ,required=True)
@@ -14,3 +19,36 @@ class SendOtpSerializer(serializers.Serializer):
             raise serializers.ValidationError("شماره موبایل معتبر نیست. باید با 09 شروع شود.")
 
         return value
+
+
+
+class VerifyOtpSerializer(serializers.Serializer):
+    otp_session_token = serializers.CharField()
+    otp_code = serializers.CharField(max_length=5)
+
+
+class CompleteRegistrationSerializer(serializers.Serializer):
+    registration_token = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=[('agent', 'Agent'), ('customer', 'Customer')])
+    password = serializers.CharField()
+    confirm_password = serializers.CharField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            return serializers.ValidationError("This email is already in use.")
+        return value
+
+    def validate_role(self , value):
+        if value != 'agent' and value != 'customer':
+            raise serializers.ValidationError("please select agent or customer.")
+        return value
+
+    def validate(self , data):
+        pass1 = data['password']
+        pass2 = data['confirm_password']
+        if pass1 != pass2:
+            raise serializers.ValidationError("Passwords don't match.")
+        return data
