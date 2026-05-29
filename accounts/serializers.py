@@ -38,13 +38,9 @@ class CompleteRegistrationSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            return serializers.ValidationError("This email is already in use.")
+            raise serializers.ValidationError("This email is already in use.")
         return value
 
-    def validate_role(self , value):
-        if value != 'agent' and value != 'customer':
-            raise serializers.ValidationError("please select agent or customer.")
-        return value
 
     def validate(self , data):
         pass1 = data['password']

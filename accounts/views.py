@@ -9,12 +9,13 @@ import json
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-
-
+from django.db import IntegrityError
 
 
 
 User = get_user_model()
+MAX_OTP_ATTEMPTS = 5
+
 
 
 class SendOtpRegisterView(APIView):
@@ -32,23 +33,30 @@ class SendOtpRegisterView(APIView):
 
         phone_number = serializer.validated_data['phone_number']
 
+        # checking for repeated phone_number
         if User.objects.filter(phone_number=phone_number).exists():
             return Response({'message':'Phone number already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # check limit of sending otp in exact time
         if cache.get(otp_limit_key(phone_number)):
             return Response({"message" : "Try agin later"} , status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         code = generate_otp_code()
         session_token = generate_session_token()
 
+        # send OTP
         try:
             send_otp_code(phone_number, code)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        # save datas in redis cache
         cache.set(otp_data_key(phone_number), code , timeout=OTP_TTL_SECONDS)
         cache.set(otp_limit_key(phone_number), True , timeout=OTP_RATE_LIMIT_SECONDS)
         cache.set(otp_session_key(session_token), phone_number , timeout=OTP_TTL_SECONDS)
+
+        # delete all attempts for this phone_number
+        cache.delete(f"otp_attempts:{phone_number}")
 
         return Response(
             {"message" : "OTP code sent successfully" , "otp_session_token" : session_token},
@@ -70,18 +78,38 @@ class VerifyOtpRegisterView(APIView):
 
         phone_number = cache.get(otp_session_key(session_token))
 
+        # session validation
         if not phone_number:
-            return Response({"message" : "phone number not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message" : "Session Expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        attempts_key = f"otp_attempts:{phone_number}"
+        attempts = cache.get(attempts_key, 0)
+
+        if attempts >= MAX_OTP_ATTEMPTS:
+            # delete data after 5 attempts
+            cache.delete(otp_data_key(phone_number))
+            cache.delete(otp_session_key(session_token))
+            cache.delete(attempts_key)
+            return Response(
+                {"message": "Too many incorrect attempts. Please request a new OTP."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         stored_code = cache.get(otp_data_key(phone_number))
 
-        if not stored_code or stored_code != user_code:
-            return Response({"message" : "OTP in incorrect"}, status=status.HTTP_404_NOT_FOUND)
+        if not stored_code:
+            return Response({"message" : "Otp code Expired"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if stored_code != user_code:
+            cache.set(attempts_key, attempts + 1, timeout=OTP_TTL_SECONDS)
+            return Response({"message" : "OTP in incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # delete datas after successful operation
         cache.delete(otp_data_key(phone_number))
         cache.delete(otp_session_key(session_token))
+        cache.delete(attempts_key)
 
-
+        # generate token for complete registration
         new_session_token = generate_session_token()
         cache.set(otp_session_key(new_session_token), phone_number, timeout=600)
 
@@ -105,20 +133,31 @@ class CompleteRegisterView(APIView):
 
         phone_number = cache.get(otp_session_key(token))
 
+        # token validation
         if not phone_number:
             return Response({"message" : "registration Failed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create(
-            phone_number=phone_number,
-            email=serializer.validated_data['email'],
-            first_name=serializer.validated_data['first_name'],
-            last_name=serializer.validated_data['last_name'],
-            role=serializer.validated_data['role'],
-        )
-        user.set_password(serializer.validated_data['password'])
-        user.save()
+        # try for creating user and error handel when two attempts happen with same email or phone_number same time
+        try:
+            user = User.objects.create(
+                phone_number=phone_number,
+                email=serializer.validated_data['email'],
+                first_name=serializer.validated_data['first_name'],
+                last_name=serializer.validated_data['last_name'],
+                role=serializer.validated_data['role'],
+            )
+            user.set_password(serializer.validated_data['password'])
+            user.save()
+        except IntegrityError:
+            return Response(
+                {"message": "A user with this phone number or email already exists."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        # delete token in redis cache
         cache.delete(otp_session_key(token))
+
+        #create final jwt token
         refresh = RefreshToken.for_user(user)
 
         return Response({
@@ -128,37 +167,4 @@ class CompleteRegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class SendOtpLoginView(APIView):
-    """
-    Send Otp with phone_number and save code in redis
-    """
-    authentication_classes = []
-    permission_classes = []
-    serializer_class = SendOtpSerializer
 
-    def post(self, request):
-
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        phone_number = serializer.validated_data['phone_number']
-
-
-        if cache.get(otp_limit_key(phone_number)):
-            return Response({"message": "Try agin later"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        code = generate_otp_code()
-        session_token = generate_session_token()
-
-        try:
-            send_otp_code(phone_number, code)
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        cache.set(otp_data_key(phone_number), code, timeout=OTP_TTL_SECONDS)
-        cache.set(otp_limit_key(phone_number), True, timeout=OTP_RATE_LIMIT_SECONDS)
-        cache.set(otp_session_key(session_token), phone_number, timeout=OTP_TTL_SECONDS)
-
-        return Response(
-            {"message": "OTP code sent successfully", "otp_session_token": session_token},
-            status=status.HTTP_200_OK)
