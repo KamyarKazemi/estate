@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 import re
+from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
@@ -32,7 +33,10 @@ class CompleteRegistrationSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     email = serializers.EmailField()
-    role = serializers.ChoiceField(choices=[('agent', 'Agent'), ('customer', 'Customer')])
+    role = serializers.ChoiceField(choices=[
+        (User.Role.AGENT , 'Agent'),
+        (User.Role.CUSTOMER , 'Customer'),
+    ])
     password = serializers.CharField()
     confirm_password = serializers.CharField()
 
@@ -41,6 +45,9 @@ class CompleteRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("This email is already in use.")
         return value
 
+    def validate_password(self, value):
+        validate_password(value)
+        return value
 
     def validate(self , data):
         pass1 = data['password']

@@ -1,17 +1,15 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import SendOtpSerializer, VerifyOtpSerializer, CompleteRegistrationSerializer
 from .otp import *
 from .utils import send_otp_code
-import json
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-
+from .services.otp_service import OTPService
 
 
 User = get_user_model()
@@ -42,26 +40,15 @@ class SendOtpRegisterView(APIView):
         if cache.get(otp_limit_key(phone_number)):
             return Response({"message" : "Try agin later"} , status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        code = generate_otp_code()
-        session_token = generate_session_token()
 
         # send OTP
         try:
-            send_otp_code(phone_number, code)
+            OTPService.send_otp(phone_number)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # save datas in redis cache
-        cache.set(otp_data_key(phone_number), code , timeout=OTP_TTL_SECONDS)
-        cache.set(otp_limit_key(phone_number), True , timeout=OTP_RATE_LIMIT_SECONDS)
-        cache.set(otp_session_key(session_token), phone_number , timeout=OTP_TTL_SECONDS)
-
-        # delete all attempts for this phone_number
-        cache.delete(f"otp_attempts:{phone_number}")
-
         return Response(
-            {"message" : "OTP code sent successfully" , "otp_session_token" : session_token},
-            status=status.HTTP_200_OK)
+            {"message" : "OTP code sent successfully"},status=status.HTTP_200_OK)
 
 
 
@@ -193,26 +180,14 @@ class SendOtpLoginView(APIView):
         if cache.get(otp_limit_key(phone_number)):
             return Response({"message" : "Try agin later"} , status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        code = generate_otp_code()
-        session_token = generate_session_token()
-
         # send OTP
         try:
-            send_otp_code(phone_number, code)
+            OTPService.send_otp(phone_number)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # save datas in redis cache
-        cache.set(otp_data_key(phone_number), code , timeout=OTP_TTL_SECONDS)
-        cache.set(otp_limit_key(phone_number), True , timeout=OTP_RATE_LIMIT_SECONDS)
-        cache.set(otp_session_key(session_token), phone_number , timeout=OTP_TTL_SECONDS)
-
-        # delete all attempts for this phone_number
-        cache.delete(f"otp_attempts:{phone_number}")
-
         return Response(
-            {"message" : "OTP code sent successfully" , "otp_session_token" : session_token},
-            status=status.HTTP_200_OK)
+            {"message" : "OTP code sent successfully"},status=status.HTTP_200_OK)
 
 
 
