@@ -13,7 +13,7 @@ from .services.otp_service import OTPService
 
 
 User = get_user_model()
-MAX_OTP_ATTEMPTS = 5
+
 
 
 
@@ -51,7 +51,6 @@ class SendOtpRegisterView(APIView):
             ,status=status.HTTP_200_OK)
 
 
-
 class VerifyOtpRegisterView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -61,41 +60,13 @@ class VerifyOtpRegisterView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_code = serializer.validated_data['otp_code']
-        session_token = serializer.validated_data['otp_session_token']
-
-        phone_number = cache.get(otp_session_key(session_token))
-
-        # session validation
-        if not phone_number:
-            return Response({"message" : "Session Expired"}, status=status.HTTP_400_BAD_REQUEST)
-
-        attempts_key = f"otp_attempts:{phone_number}"
-        attempts = cache.get(attempts_key, 0)
-
-        if attempts >= MAX_OTP_ATTEMPTS:
-            # delete data after 5 attempts
-            cache.delete(otp_data_key(phone_number))
-            cache.delete(otp_session_key(session_token))
-            cache.delete(attempts_key)
-            return Response(
-                {"message": "Too many incorrect attempts. Please request a new OTP."},
-                status=status.HTTP_400_BAD_REQUEST
+        try:
+            phone_number = OTPService.verify_otp(
+                serializer.validated_data['otp_session_token'],
+                serializer.validated_data['otp_code'],
             )
-
-        stored_code = cache.get(otp_data_key(phone_number))
-
-        if not stored_code:
-            return Response({"message" : "Otp code Expired"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if stored_code != user_code:
-            cache.set(attempts_key, attempts + 1, timeout=OTP_TTL_SECONDS)
-            return Response({"message" : "OTP in incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # delete datas after successful operation
-        cache.delete(otp_data_key(phone_number))
-        cache.delete(otp_session_key(session_token))
-        cache.delete(attempts_key)
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # generate token for complete registration
         new_session_token = generate_session_token()
@@ -155,8 +126,6 @@ class CompleteRegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-
-
 class SendOtpLoginView(APIView):
     """
     Send Otp with phone_number and save code in redis for login
@@ -187,9 +156,8 @@ class SendOtpLoginView(APIView):
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(
-            {"message" : "OTP code sent successfully" , "registration_token" : session_token}
+            {"message" : "OTP code sent successfully" , "otp_session_token" : session_token}
             ,status=status.HTTP_200_OK)
-
 
 
 class VerifyOtpLoginView(APIView):
@@ -198,54 +166,24 @@ class VerifyOtpLoginView(APIView):
     serializer_class = VerifyOtpSerializer
 
     def post(self , request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data = request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_code = serializer.validated_data['otp_code']
-        session_token = serializer.validated_data['otp_session_token']
-
-        phone_number = cache.get(otp_session_key(session_token))
-
-        # check expiration of token
-        if not phone_number:
-            return Response({'message':'session expired'}, status=status.HTTP_400_BAD_REQUEST)
-
-        attempts_key = f"otp_attempts:{phone_number}"
-        attempts = cache.get(attempts_key, 0)
-
-        if attempts >= MAX_OTP_ATTEMPTS:
-            cache.delete(otp_data_key(phone_number))
-            cache.delete(otp_session_key(session_token))
-            cache.delete(attempts_key)
-            return Response(
-                        {"message": "Too many incorrect attempts. Please request a new OTP."},
-                        status=status.HTTP_400_BAD_REQUEST
-                )
-
-        stored_code = cache.get(otp_data_key(phone_number))
-
-        if not stored_code:
-            return Response({'message':'Otp code expired'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if stored_code != user_code:
-            cache.set(attempts_key, attempts + 1, timeout=OTP_TTL_SECONDS)
-            return Response({"message" : "Code is wrong."}, status=status.HTTP_400_BAD_REQUEST)
-
-
-        #delete all data in redis after successfully operation
-        cache.delete(otp_data_key(phone_number))
-        cache.delete(otp_session_key(session_token))
-        cache.delete(attempts_key)
-
         try:
-            user = User.objects.get(phone_number=phone_number)
-        except User.DoesNotExist:
-            return Response({"message": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
+            phone_number = OTPService.verify_otp(
+                serializer.validated_data['otp_session_token'],
+                serializer.validated_data['otp_code'],
+            )
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(phone_number=phone_number).first()
 
         refresh = RefreshToken.for_user(user)
 
         return Response({
-            "detail": "Login successful",
-            "access": str(refresh.access_token),
-            "refresh": str(refresh)
-        }, status=status.HTTP_200_OK)
+            "access" : str(refresh.access_token),
+            "refresh" : str(refresh)
+        })
+
+
