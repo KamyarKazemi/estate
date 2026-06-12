@@ -24,4 +24,4 @@ class OTPService:
 
         cache.delete(f"otp attempts for {phone_number}")
 
-        return {"otp_session_token" : session_token}
+        return session_token

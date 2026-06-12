@@ -40,15 +40,15 @@ class SendOtpRegisterView(APIView):
         if cache.get(otp_limit_key(phone_number)):
             return Response({"message" : "Try agin later"} , status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-
         # send OTP
         try:
-            OTPService.send_otp(phone_number)
+            session_token = OTPService.send_otp(phone_number)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(
-            {"message" : "OTP code sent successfully"},status=status.HTTP_200_OK)
+            {"message" : "OTP code sent successfully" , "otp_session_token" : session_token}
+            ,status=status.HTTP_200_OK)
 
 
 
@@ -182,12 +182,13 @@ class SendOtpLoginView(APIView):
 
         # send OTP
         try:
-            OTPService.send_otp(phone_number)
+            session_token = OTPService.send_otp(phone_number)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(
-            {"message" : "OTP code sent successfully"},status=status.HTTP_200_OK)
+            {"message" : "OTP code sent successfully" , "registration_token" : session_token}
+            ,status=status.HTTP_200_OK)
 
 
 
