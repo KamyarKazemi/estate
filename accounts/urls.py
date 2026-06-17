@@ -8,4 +8,5 @@ urlpatterns = [
     path('user/complete/register/' , views.CompleteRegisterView.as_view(), name='complete-register'),
     path('user/login/send/code/' , views.SendOtpLoginView.as_view(), name='login-send-code'),
     path('user/login/verify/code/' , views.VerifyOtpLoginView.as_view(), name='login-verify-code'),
+    path('user/info/' , views.UserSendInfoView.as_view(), name='user-info'),
 ]

@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import SendOtpSerializer, VerifyOtpSerializer, CompleteRegistrationSerializer
+from .serializers import SendOtpSerializer, VerifyOtpSerializer, CompleteRegistrationSerializer , UserSendInfoSerializer
 from .otp import *
 from .utils import send_otp_code
 from django.core.cache import cache
@@ -11,6 +11,7 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from .services.otp_service import OTPService
 from .services.auth_service import AuthService
+from rest_framework.permissions import IsAuthenticated
 
 
 User = get_user_model()
@@ -160,3 +161,11 @@ class VerifyOtpLoginView(APIView):
         })
 
 
+class UserSendInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSendInfoSerializer
+
+    def get(self , request):
+        user = request.user
+        serializer = self.serializer_class(instance=user)
+        return Response(serializer.data)

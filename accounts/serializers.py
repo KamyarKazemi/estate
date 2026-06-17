@@ -55,3 +55,8 @@ class CompleteRegistrationSerializer(serializers.Serializer):
         if pass1 != pass2:
             raise serializers.ValidationError("Passwords don't match.")
         return data
+
+class UserSendInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('phone_number', 'email', 'first_name', 'last_name', 'role')
