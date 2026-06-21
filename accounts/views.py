@@ -1,7 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import SendOtpSerializer, VerifyOtpSerializer, CompleteRegistrationSerializer , UserSendInfoSerializer
+from .serializers import (SendOtpSerializer, VerifyOtpSerializer,
+                          CompleteRegistrationSerializer , UserSendInfoSerializer,
+                          SendOtpLoginSerializer)
 from .otp import *
 from .utils import send_otp_code
 from django.core.cache import cache
@@ -106,7 +108,7 @@ class SendOtpLoginView(APIView):
     """
     authentication_classes = []
     permission_classes = []
-    serializer_class = SendOtpSerializer
+    serializer_class = SendOtpLoginSerializer
 
     def post(self , request):
 
@@ -114,10 +116,13 @@ class SendOtpLoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         phone_number = serializer.validated_data['phone_number']
+        password = serializer.validated_data['password']
 
         # checking for existence of phone_number
-        if not User.objects.filter(phone_number=phone_number).exists():
-            return Response({'message':'Phone number not found'}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.filter(phone_number=phone_number).first()
+        if not user:
+            if not user.check_password(password):
+                return Response({'message':'Phone number not found or password is wrong'}, status=status.HTTP_400_BAD_REQUEST)
 
         # check limit of sending otp in exact time
         if cache.get(otp_limit_key(phone_number)):
