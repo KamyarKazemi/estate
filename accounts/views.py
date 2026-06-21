@@ -120,9 +120,8 @@ class SendOtpLoginView(APIView):
 
         # checking for existence of phone_number
         user = User.objects.filter(phone_number=phone_number).first()
-        if not user:
-            if not user.check_password(password):
-                return Response({'message':'Phone number not found or password is wrong'}, status=status.HTTP_400_BAD_REQUEST)
+        if not user or not user.check_password(password):
+            return Response({'message':'Phone number not found or password is wrong'}, status=status.HTTP_400_BAD_REQUEST)
 
         # check limit of sending otp in exact time
         if cache.get(otp_limit_key(phone_number)):
