@@ -9,4 +9,5 @@ urlpatterns = [
     path('user/login/send/code/' , views.SendOtpLoginView.as_view(), name='login-send-code'),
     path('user/login/verify/code/' , views.VerifyOtpLoginView.as_view(), name='login-verify-code'),
     path('user/info/' , views.UserSendInfoView.as_view(), name='user-info'),
+    path('user/update/info/' , views.UserUpdateInfoView.as_view(), name='user-update-info'),
 ]

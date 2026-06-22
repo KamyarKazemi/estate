@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import (SendOtpSerializer, VerifyOtpSerializer,
                           CompleteRegistrationSerializer , UserSendInfoSerializer,
-                          SendOtpLoginSerializer)
+                          SendOtpLoginSerializer , UserUpdateInfoSerializer)
 from .otp import *
 from .utils import send_otp_code
 from django.core.cache import cache
@@ -172,4 +172,16 @@ class UserSendInfoView(APIView):
     def get(self , request):
         user = request.user
         serializer = self.serializer_class(instance=user)
+        return Response(serializer.data , status=status.HTTP_200_OK)
+
+
+class UserUpdateInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserUpdateInfoSerializer
+
+    def patch(self , request):
+        user = request.user
+        serializer = self.serializer_class(instance=user , data=request.data , partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data , status=status.HTTP_200_OK)

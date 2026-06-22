@@ -75,3 +75,15 @@ class UserSendInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('phone_number', 'email', 'first_name', 'last_name', 'role')
+
+
+
+class UserUpdateInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'first_name', 'last_name',)
+
+    def validate_email(self, value):
+        if User.objects.exclude(pk=self.instance.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
