@@ -87,3 +87,5 @@ class UserUpdateInfoSerializer(serializers.ModelSerializer):
         if User.objects.exclude(pk=self.instance.pk).filter(email=value).exists():
             raise serializers.ValidationError("This email is already in use.")
         return value
+
+
