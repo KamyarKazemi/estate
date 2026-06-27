@@ -14,7 +14,8 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from .services.otp_service import OTPService
 from .services.auth_service import AuthService
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import ValidationError
 
 
 User = get_user_model()
@@ -193,7 +194,7 @@ class UserResetPasswordStepOneView(APIView):
     """
     Reset password step one : send otp code
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = SendOtpSerializer
     def post(self , request):
         serializer = self.serializer_class(data = request.data)
@@ -221,7 +222,7 @@ class UserResetPasswordStepTwoView(APIView):
     """
     Reset password step two : verify otp code
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = VerifyOtpSerializer
 
     def post(self , request):
@@ -247,7 +248,7 @@ class UserResetPasswordStepThreeView(APIView):
     """
     Reset password step three : Changing password
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = UserResetPasswordSerializer
 
     def post(self , request):
@@ -255,7 +256,7 @@ class UserResetPasswordStepThreeView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            AuthService.reset_password(serializer.data)
+            AuthService.reset_password(serializer.validated_data)
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

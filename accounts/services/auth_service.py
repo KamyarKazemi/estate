@@ -3,6 +3,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
 from accounts.otp import *
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -48,13 +49,13 @@ class AuthService:
 
         phone_number = cache.get(otp_session_key(token))
         if not phone_number:
-            raise ValueError("Password Reset Failed")
+            raise ValidationError("Password Reset Failed")
         try:
             user = User.objects.get(phone_number=phone_number)
             user.set_password(password)
             user.save()
-        except IntegrityError:
-            raise ValueError("Registration Failed")
+        except User.DoesNotExist:
+            raise ValidationError("Reset Password Failed")
 
         cache.delete(otp_session_key(token))
 
