@@ -10,4 +10,8 @@ urlpatterns = [
     path('user/login/verify/code/' , views.VerifyOtpLoginView.as_view(), name='login-verify-code'),
     path('user/info/' , views.UserSendInfoView.as_view(), name='user-info'),
     path('user/update/info/' , views.UserUpdateInfoView.as_view(), name='user-update-info'),
+    path('user/reset/password/step1/' , views.UserResetPasswordStepOneView.as_view(), name='user-reset-password-step1'),
+    path('user/reset/password/step2/' , views.UserResetPasswordStepTwoView.as_view(), name='user-reset-password-step2'),
+    path('user/reset/password/step3/' , views.UserResetPasswordStepThreeView.as_view(), name='user-reset-password-step2'),
+
 ]

@@ -41,3 +41,26 @@ class AuthService:
             "refresh": str(refresh),
         }
 
+    @staticmethod
+    def reset_password(data):
+        token = data["reset_token"]
+        password = data["password"]
+
+        phone_number = cache.get(otp_session_key(token))
+        if not phone_number:
+            raise ValueError("Password Reset Failed")
+        try:
+            user = User.objects.get(phone_number=phone_number)
+            user.set_password(password)
+            user.save()
+        except IntegrityError:
+            raise ValueError("Registration Failed")
+
+        cache.delete(otp_session_key(token))
+
+        return {
+            "detail": "Password Reset successful",
+        }
+
+
+

@@ -88,4 +88,14 @@ class UserUpdateInfoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This email is already in use.")
         return value
 
+class UserResetPasswordSerializer(serializers.Serializer):
+    reset_token = serializers.CharField()
+    password = serializers.CharField()
+    confirm_password = serializers.CharField()
 
+    def validate(self , data):
+        pass1 = data['password']
+        pass2 = data['confirm_password']
+        if pass1 != pass2:
+            raise serializers.ValidationError("Passwords don't match.")
+        return data
