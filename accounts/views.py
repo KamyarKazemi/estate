@@ -262,3 +262,24 @@ class UserResetPasswordStepThreeView(APIView):
 
         return Response({"message" : "Password reset successful" ,} , status=status.HTTP_200_OK)
 
+
+class ChangePhoneNumberView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SendOtpSerializer
+
+    def post(self , request):
+        serializer = self.serializer_class(data = request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone_number = serializer.validated_data['phone_number']
+
+        if User.objects.filter(phone_number=phone_number).exists():
+            return Response({"message" : "Try another phone number"} , status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            session_token = OTPService.send_otp(phone_number)
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message" : "OTP code sent successfully" , "otp_session_token" : session_token }
+                        , status=status.HTTP_200_OK)
