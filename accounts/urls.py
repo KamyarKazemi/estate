@@ -13,5 +13,6 @@ urlpatterns = [
     path('user/reset/password/step1/' , views.UserResetPasswordStepOneView.as_view(), name='user-reset-password-step1'),
     path('user/reset/password/step2/' , views.UserResetPasswordStepTwoView.as_view(), name='user-reset-password-step2'),
     path('user/reset/password/step3/' , views.UserResetPasswordStepThreeView.as_view(), name='user-reset-password-step2'),
-
+    path('user/change/phone/step1/' , views.SendOtpChangePhoneNumberView.as_view(), name='user-change-phone-step1'),
+    path('user/change/phone/step2/' , views.VerifyOtpChangePhoneNumberView.as_view(), name='user-change-phone-step2'),
 ]

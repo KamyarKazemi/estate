@@ -263,7 +263,7 @@ class UserResetPasswordStepThreeView(APIView):
         return Response({"message" : "Password reset successful" ,} , status=status.HTTP_200_OK)
 
 
-class ChangePhoneNumberView(APIView):
+class SendOtpChangePhoneNumberView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SendOtpSerializer
 
@@ -281,5 +281,35 @@ class ChangePhoneNumberView(APIView):
         except Exception as e:
             return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        request.session['old_phone_number'] = request.user.phone_number
+
         return Response({"message" : "OTP code sent successfully" , "otp_session_token" : session_token }
                         , status=status.HTTP_200_OK)
+
+
+class VerifyOtpChangePhoneNumberView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VerifyOtpSerializer
+
+    def post(self , request):
+        serializer = self.serializer_class(data = request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(phone_number = request.session['old_phone_number'])
+
+        if user != request.user:
+            return Response({"message" : "You are not the owner"} , status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            phone_number = OTPService.verify_otp(
+                serializer.validated_data['otp_session_token'],
+                serializer.validated_data['otp_code'],
+            )
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user.phone_number = phone_number
+        user.save()
+        request.session.pop('old_phone_number' , None)
+        return Response({"message" : "Phone number changed successfully" ,} , status=status.HTTP_200_OK)
