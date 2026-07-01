@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 
 User = get_user_model()
-MAX_OTP_ATTEMPTS = 5
+MAX_OTP_ATTEMPTS = 10
 
 class OTPService:
 
@@ -17,11 +17,6 @@ class OTPService:
 
         send_otp_code(phone_number , code)
         print(session_token)
-        print("Saved key:", otp_session_key(session_token))
-        print("Saved value:", cache.get(otp_session_key(session_token)))
-
-        print("phone_number:", phone_number)
-        print(type(phone_number))
 
         cache.set(otp_data_key(phone_number), code, timeout=OTP_TTL_SECONDS)
 
