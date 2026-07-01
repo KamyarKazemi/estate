@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 
 User = get_user_model()
-MAX_OTP_ATTEMPTS = 5
+MAX_OTP_ATTEMPTS = 10
 
 class OTPService:
 
@@ -30,8 +30,8 @@ class OTPService:
 
     @staticmethod
     def verify_otp(session_token , user_code):
-
         phone_number = cache.get(otp_session_key(session_token))
+        print(phone_number)
 
         if not phone_number:
             raise ValueError("Token expired")
@@ -57,5 +57,6 @@ class OTPService:
         cache.delete(otp_data_key(phone_number))
         cache.delete(otp_session_key(session_token))
         cache.delete(attempts_key)
+
 
         return phone_number

@@ -5,7 +5,7 @@ import uuid
 OTP_TTL_SECONDS = 120
 
 # Time for resending otp_code
-OTP_RATE_LIMIT_SECONDS = 120
+OTP_RATE_LIMIT_SECONDS = 5
 
 def generate_otp_code():
     """
