@@ -16,6 +16,7 @@ from .services.otp_service import OTPService
 from .services.auth_service import AuthService
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth import logout
 
 
 User = get_user_model()
@@ -313,3 +314,60 @@ class VerifyOtpChangePhoneNumberView(APIView):
         user.save()
         request.session.pop('old_phone_number' , None)
         return Response({"message" : "Phone number changed successfully" ,} , status=status.HTTP_200_OK)
+
+
+
+class UserDeleteAccountStep1View(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self , request):
+        phone_number = request.user.phone_number
+
+        if cache.get(otp_limit_key(phone_number)):
+            return Response({"message" : "Try agin later"} , status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        try:
+            session_token = OTPService.send_otp(phone_number)
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message" : "otp send to you" , "otp_session_token" : session_token} , status=status.HTTP_200_OK)
+
+
+class UserDeleteAccountStep2View(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VerifyOtpSerializer
+
+    def post(self , request):
+        serializer = self.serializer_class(data = request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            phone_number = OTPService.verify_otp(
+                serializer.validated_data['otp_session_token'],
+                serializer.validated_data['otp_code'],
+            )
+            user = User.objects.filter(phone_number=phone_number).first()
+
+            if not user:
+                return Response({"message": "User not found"},status=status.HTTP_404_NOT_FOUND)
+
+            user.delete()
+        except Exception as e:
+            return Response({"message" : str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

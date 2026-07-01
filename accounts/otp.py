@@ -2,10 +2,12 @@ import random
 import uuid
 
 # validate time for accepting otp_code
-OTP_TTL_SECONDS = 120
+# OTP_TTL_SECONDS = 120
+OTP_TTL_SECONDS = 2
 
 # Time for resending otp_code
-OTP_RATE_LIMIT_SECONDS = 120
+# OTP_RATE_LIMIT_SECONDS = 120
+OTP_RATE_LIMIT_SECONDS = 2
 
 def generate_otp_code():
     """

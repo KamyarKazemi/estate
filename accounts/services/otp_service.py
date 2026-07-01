@@ -17,6 +17,11 @@ class OTPService:
 
         send_otp_code(phone_number , code)
         print(session_token)
+        print("Saved key:", otp_session_key(session_token))
+        print("Saved value:", cache.get(otp_session_key(session_token)))
+
+        print("phone_number:", phone_number)
+        print(type(phone_number))
 
         cache.set(otp_data_key(phone_number), code, timeout=OTP_TTL_SECONDS)
 
@@ -30,8 +35,8 @@ class OTPService:
 
     @staticmethod
     def verify_otp(session_token , user_code):
-
         phone_number = cache.get(otp_session_key(session_token))
+        print(phone_number)
 
         if not phone_number:
             raise ValueError("Token expired")
@@ -57,5 +62,6 @@ class OTPService:
         cache.delete(otp_data_key(phone_number))
         cache.delete(otp_session_key(session_token))
         cache.delete(attempts_key)
+
 
         return phone_number
