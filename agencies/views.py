@@ -68,3 +68,17 @@ class AgencyPublicDetailView(APIView):
         agency = get_object_or_404(Agency ,pk = kwargs['pk'] , is_verified = True)
         serializer = self.serializer_class(agency)
         return Response(serializer.data , status=status.HTTP_200_OK)
+
+
+class AgencyPrivetDetailView(APIView):
+    serializer_class = AgencyDetailSerializer
+    permission_classes = [IsAgent]
+
+    def get(self, request):
+        try:
+            agency = request.user.agency
+        except Agency.DoesNotExist:
+            return Response({"message":"Agency not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(agency)
+        return Response(serializer.data , status=status.HTTP_200_OK)
