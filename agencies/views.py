@@ -1,12 +1,12 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
-from .serializers import AgencySerializer
+from .serializers import AgencySerializer , AgencyDetailSerializer
 from .permissions import IsAgent
-
+from django.shortcuts import get_object_or_404
 
 class CreateAgencyView(APIView):
     """
@@ -44,4 +44,17 @@ class UpdateAgencyView(APIView):
                                            context={'request':request} ,)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data , status=status.HTTP_200_OK)
+
+
+class AgencyPublicDetailView(APIView):
+    """
+    Public agency detail view
+    """
+    serializer_class = AgencyDetailSerializer
+    permission_classes = [AllowAny]
+
+    def get(self , request , *args , **kwargs ):
+        agency = get_object_or_404(Agency ,pk = kwargs['pk'])
+        serializer = self.serializer_class(agency)
         return Response(serializer.data , status=status.HTTP_200_OK)

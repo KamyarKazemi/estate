@@ -6,7 +6,7 @@ from .models import Agency
 @admin.register(Agency)
 class AgencyAdmin(admin.ModelAdmin):
     """showing fields in main menu"""
-    list_display = ('agent' , 'name' , 'license_number' , 'is_verified')
+    list_display = ("pk" ,'agent' , 'name' , 'license_number' , 'is_verified')
 
     """filtering items and clicking"""
     search_fields = ('name' , 'license_number' , 'is_verified')
