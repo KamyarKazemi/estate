@@ -12,10 +12,19 @@ class AgencySerializer(serializers.ModelSerializer):
         fields = ('name' , 'license_number' , 'business_phone' , 'description' , 'province' , 'city' , 'exact_address')
 
 
+class AgencyListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Agency
+        fields = ('pk' , 'name' , "province" , 'city')
+
+
+
 class AgencyDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Agency
         fields = "__all__"
+
+
 
 
 

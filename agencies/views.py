@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
-from .serializers import AgencySerializer , AgencyDetailSerializer
+from .serializers import AgencySerializer , AgencyDetailSerializer , AgencyListSerializer
 from .permissions import IsAgent
 from django.shortcuts import get_object_or_404
 
@@ -47,6 +47,16 @@ class UpdateAgencyView(APIView):
         return Response(serializer.data , status=status.HTTP_200_OK)
 
 
+class AgencyListView(APIView):
+    serializer_class = AgencyListSerializer
+    permission_classes = [AllowAny]
+
+    def get(self , request):
+        agencies = Agency.objects.filter(is_verified = True)
+        serializer = self.serializer_class(agencies , many=True)
+        return Response(serializer.data , status=status.HTTP_200_OK)
+
+
 class AgencyPublicDetailView(APIView):
     """
     Public agency detail view
@@ -55,6 +65,6 @@ class AgencyPublicDetailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self , request , *args , **kwargs ):
-        agency = get_object_or_404(Agency ,pk = kwargs['pk'])
+        agency = get_object_or_404(Agency ,pk = kwargs['pk'] , is_verified = True)
         serializer = self.serializer_class(agency)
         return Response(serializer.data , status=status.HTTP_200_OK)
