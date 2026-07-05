@@ -47,7 +47,7 @@ class UpdateAgencyView(APIView):
         return Response(serializer.data , status=status.HTTP_200_OK)
 
 
-class AgencyListView(APIView):
+class ListAgencyView(APIView):
     serializer_class = AgencyListSerializer
     permission_classes = [AllowAny]
 
@@ -57,7 +57,7 @@ class AgencyListView(APIView):
         return Response(serializer.data , status=status.HTTP_200_OK)
 
 
-class AgencyPublicDetailView(APIView):
+class DetailPublicAgencyView(APIView):
     """
     Public agency detail view
     """
@@ -70,7 +70,7 @@ class AgencyPublicDetailView(APIView):
         return Response(serializer.data , status=status.HTTP_200_OK)
 
 
-class AgencyPrivetDetailView(APIView):
+class DetailPrivetAgencyView(APIView):
     serializer_class = AgencyDetailSerializer
     permission_classes = [IsAgent]
 
@@ -82,3 +82,16 @@ class AgencyPrivetDetailView(APIView):
 
         serializer = self.serializer_class(agency)
         return Response(serializer.data , status=status.HTTP_200_OK)
+
+
+class DeleteAgencyView(APIView):
+    permission_classes = [IsAgent]
+
+    def delete(self , request):
+        try:
+            agency = request.user.agency
+            agency.delete()
+        except Agency.DoesNotExist:
+            return Response({"message":"Agency not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({"message":"Agency deleted"}, status=status.HTTP_200_OK)
